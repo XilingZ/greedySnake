@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+
+    <canvas id="hacker" style="position:absolute;z-index:-1;"></canvas>
+
+    <head>
+        <link type="text/css" rel="stylesheet" href="/xiling/css/homepage.css"/>
+        <link rel="shortcut icon" type="image/x-icon" href="/xiling/images/favicon.ico"/>
+        <meta charset="utf-8">
+        <title>Cypher的个人网站</title>
+    </head>
+
+    <body>
+        <h1>欢迎来到我的世界</h1>
+        <h1>Welcome to my world</h1>
+
+        <div style="width:500px; height:500px; border: 2px; position:relative;">
+            <p style="text-align:center; font-size: 20px; color:ghostwhite">小游戏</p>
+            <a style="float:left;" href="/xiling/greedySnake.html">
+                <img style="width:100px; height:100px; position:relative; left:10px; right:10px; top:10px;" src="/xiling/images/snake.png"/>
+                <p style="text-align:center;">贪吃蛇</p>
+            </a>
+        </div>
+
+    </body>
+
+    <script type="text/javascript">
+    var hacker = document.getElementById("hacker");
+    var ctx = hacker.getContext("2d");
+
+    //making the canvas full screen
+    hacker.height = window.innerHeight;
+    hacker.width = window.innerWidth;
+
+    //chinese characters - taken from the unicode charset
+    var chinese = "熙龄大可1314";
+    //converting the string into an array of single characters
+    chinese = chinese.split("");
+
+    var font_size = 10;
+    var columns = hacker.width / font_size; //number of columns for the rain
+    //an array of drops - one per column
+    var drops = [];
+    //x below is the x coordinate
+    //1 = y co-ordinate of the drop(same for every drop initially)
+    for (var x = 0; x < columns; x++)
+        drops[x] = 1;
+
+    //drawing the characters
+    function draw() {
+        //Black BG for the canvas
+        //translucent BG to show trail
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, hacker.width, hacker.height);
+
+        ctx.fillStyle = "#0F0"; //green text
+        ctx.font = font_size + "px arial";
+        //looping over drops
+        for (var i = 0; i < drops.length; i++) {
+            //a random chinese character to print
+            var text = chinese[Math.floor(Math.random() * chinese.length)];
+            //x = i*font_size, y = value of drops[i]*font_size
+            ctx.fillText(text, i * font_size, drops[i] * font_size);
+
+            //sending the drop back to the top randomly after it has crossed the screen
+            //adding a randomness to the reset to make the drops scattered on the Y axis
+            if (drops[i] * font_size > hacker.height && Math.random() > 0.975)
+                drops[i] = 0;
+
+            //incrementing Y coordinate
+            drops[i]++;
+        }
+    }
+
+    setInterval(draw, 50);
+    </script>
+
+</html>

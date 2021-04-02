@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link type="text/css" rel="stylesheet" href="/xiling/css/greedySnake.css"/>
+        <link rel="shortcut icon" type="image/x-icon" href="/xiling/images/favicon.ico"/>
+        <meta charset="utf-8">
+        <title>Cypher-贪吃蛇</title>
+    </head>
+    <h1>贪吃蛇</h1>
+    <canvas id="greedySnake"></canvas>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        var box = document.getElementById("greedySnake");
+        var ctx = box.getContext("2d");
+        //基本信息（画面大小，格子数量，蛇和食物的样式，提示信息，是否已经开始游戏，游戏速度，循环）
+        box.height = 600;
+        box.width = 600;
+        var columns = 6;        //格子数量columns x columns
+        var total_blocks = columns * columns;
+        var font_size = box.height / columns;
+        var prompt_size = 70;
+        //头，身体，食物的图片
+        var head_img = new Image();
+        head_img.src = "/xiling/images/head.png"
+        var body_img = new Image();
+        body_img.src = "/xiling/images/body.png"
+        var food_img = new Image();
+        food_img.src = "/xiling/images/food.png"
+
+        var game = "请按空格开始游戏"
+        var is_start = 0;
+        var timer;
+        var speed = 1000;
+        //-----------------------------------------------------------------------------------------------
+        //刚进入游戏页面时的画面
+        //-----------------------------------------------------------------------------------------------
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, box.width, box.height);
+        ctx.fillStyle = '#0000ff';
+        ctx.font = prompt_size + "px arial";
+        ctx.fillText(game, 20, 300);
+
+        //-----------------------------------------------------------------------------------------------
+        //“初始化”贪吃蛇数值
+        //-----------------------------------------------------------------------------------------------
+        var head_x = 0;  //初始坐标
+        var head_y = 0;
+        var count = 0; //初始身体节数
+        var direction = 3; //初始方向，1左，2上，3右，4下
+        //食物的初始位置
+        var food_init_pos = Math.floor(Math.random() * (total_blocks-1) + 1);
+        var food_x = food_init_pos % columns;
+        var food_y = Math.floor(food_init_pos / columns);
+        //记录贪吃蛇身体的数组
+        var snake_body = new Array(total_blocks);
+        for(var i = 0; i<snake_body.length; i++){
+            snake_body[i] = new Array(2);
+        }
+        //记录被占用的格子的数组
+        var used = new Array(columns);
+        for(var i = 0; i<used.length; i++){
+            used[i] = new Array(columns);
+        }
+        //记录上一次贪吃蛇身体的数组
+        var history_snake = new Array(total_blocks);
+        for(var i = 0; i<history_snake.length; i++){
+            history_snake[i] = new Array(2);
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //设置已被占用空格
+        //-----------------------------------------------------------------------------------------------
+        function usedBlocks(){
+            for(var i=0; i<columns;i++){
+                for(var j=0; j<columns; j++){
+                    used[i][j] = 0;
+                }
+            }
+            for(var i=0; i<=count; i++){
+                var snake_x = snake_body[i][0];
+                var snake_y = snake_body[i][1];
+                used[snake_x][snake_y] = 1;
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //检查按方向键之前的方向，用于撤回到前一个条蛇
+        //-----------------------------------------------------------------------------------------------
+        function checkDirection(){
+            if(direction == 1){
+                head_x++;
+            }
+            else if (direction == 2){
+                head_y++;
+            }
+            else if (direction == 3){
+                head_x--;
+            }
+            else if (direction == 4){
+                head_y--;
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //随机一个食物的位置
+        //-----------------------------------------------------------------------------------------------
+        function food(){
+            var food_count = 0;
+            var availible_pos = new Array();
+            for(var i = 0; i<columns; i++){
+                for(var j=0; j<columns; j++){
+                    if(used[j][i] == 0){
+                        availible_pos[food_count] = i*columns + j; 
+                        food_count++;
+                    }
+                }
+            }
+            var food_num = Math.floor(Math.random() * availible_pos.length);
+            food_num = availible_pos[food_num];
+            return food_num;
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //判断是否吃到食物
+        //-----------------------------------------------------------------------------------------------
+        function isEat(){
+            if(food_x == snake_body[0][0] && food_y == snake_body[0][1]){
+                count++;
+                snake_body[count][0] = history_snake[count-1][0];
+                snake_body[count][1] = history_snake[count-1][1];
+                used[snake_body[count][0]][snake_body[count][1]] = 1;
+                return 1;
+            }
+            else{
+                return 0;
+            }
+        }
+        
+        //-----------------------------------------------------------------------------------------------
+        //判断蛇是否死亡
+        //-----------------------------------------------------------------------------------------------
+        function outside(){
+            if(head_x < 0 || head_y < 0 || head_x > columns-1 || head_y > columns-1){
+                clearInterval(timer);
+                var dead = "出界啦"
+                ctx.fillStyle = '#ff0000';
+                ctx.font = prompt_size + "px arial";
+                ctx.fillText(dead, 20, 300);
+                is_start = 0;
+                return 1;
+            }
+            else{
+                return 0;
+            }
+        }
+        function eatBody(){
+            var is_eat = 0;
+            for(var i=1; i<=count; i++){
+                if(snake_body[0][0] == snake_body[i][0] && snake_body[0][1] == snake_body[i][1]){
+                    is_eat = 1;
+                }
+            }
+            if(is_eat == 1){
+                clearInterval(timer);
+                var dead = "吃到身体啦！"
+                ctx.fillStyle = '#ff0000';
+                ctx.font = prompt_size + "px arial";
+                ctx.fillText(dead, 20, 300);
+                is_start = 0;
+                return 1;
+            }
+            else{
+                return 0;
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //画新背景图，蛇，食物
+        //-----------------------------------------------------------------------------------------------
+        function draw_snake(){
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, box.width, box.height);
+            //ctx.fillStyle = "#0F0"; //green text
+            //ctx.font = font_size + "px arial";
+            //ctx.fillText(snake, snake_body[0][0] * font_size, snake_body[0][1] * font_size);
+            ctx.drawImage(head_img, snake_body[0][0] * font_size, snake_body[0][1] * font_size, font_size, font_size);
+            for(var i=1; i<=count; i++){
+                //ctx.fillText(body_icon, snake_body[i][0] * font_size, snake_body[i][1] * font_size);
+                ctx.drawImage(body_img, snake_body[i][0] * font_size, snake_body[i][1] * font_size, font_size, font_size);
+            }
+            //ctx.fillText(food_icon, food_x * font_size, food_y * font_size);
+            ctx.drawImage(food_img, food_x * font_size, food_y * font_size, font_size, font_size);
+            console.log(food_x,",",food_y);
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //每一次的移动
+        //-----------------------------------------------------------------------------------------------
+        function move(){
+            if(outside() == 1){
+                return 1;
+            }
+            
+            //记录上一轮蛇的位置
+            for(var i=0; i<=count; i++){
+                history_snake[i][0] = snake_body[i][0];
+                history_snake[i][1] = snake_body[i][1];
+            }
+
+            snake_body[0][0] = head_x;      //新蛇头的位置
+            snake_body[0][1] = head_y;
+            for(var i=1; i<=count; i++){     //新蛇的身体
+                snake_body[i][0] = history_snake[i-1][0];
+                snake_body[i][1] = history_snake[i-1][1];
+            }
+
+            usedBlocks();       //设置已被占用空格
+
+            if(isEat() == 1){   //如果吃到了食物，就更新食物的位置，并且增长身体
+                var food_pos_num = food();
+                food_x = food_pos_num % columns;
+                food_y = Math.floor(food_pos_num / columns);
+                //food_y += 1;
+            }
+
+            if(eatBody() == 1){
+                return 1;
+            }
+
+            draw_snake();       //画背景图，蛇，食物
+
+            if(count == total_blocks-1){
+                clearInterval(timer);
+                var dead = "恭喜你赢啦！"
+                ctx.fillStyle = '#ff0000';
+                ctx.font = prompt_size + "px arial";
+                ctx.fillText(dead, 20, 300);
+                is_start = 0;
+                return 1;
+            }
+
+            //根据当前方向，对xy进行加减
+            if(direction == 1){
+                head_x--;
+            }
+            else if(direction == 2){
+                head_y--;
+            }
+            else if(direction == 3){
+                head_x++;
+            }
+            else if(direction == 4){
+                head_y++;
+            }
+        }
+
+        //-----------------------------------------------------------------------------------------------
+        //按键之后的数值更改
+        //-----------------------------------------------------------------------------------------------
+        $(window).keydown(function(e) {
+            if(e.keyCode == 32 || e.keyCode == 0){
+                if(is_start == 0){
+                    head_x = 0;  //初始坐标
+                    head_y = 0;
+                    count = 0; //初始身体节数
+                    direction = 3; //初始方向，1左，2上，3右，4下
+                    //初始化食物位置
+                    food_init_pos = Math.floor(Math.random() * (total_blocks-1) + 1);
+                    food_x = food_init_pos % columns;
+                    food_y = Math.floor(food_init_pos / columns);
+                    //food_y += 1;
+                    //初始化蛇的身体，历史记录和已经使用的位置
+                    for(var i=0; i<total_blocks; i++){
+                        for(var j=0; j<2; j++){
+                            snake_body[i][j] = -1;
+                            history_snake[i][j] = -1;
+                        }
+                    }
+                    for(var i=0; i<columns;i++){
+                        for(var j=0; j<columns; j++){
+                            used[i][j] = 0;
+                        }
+                    }
+                    move();
+                    timer = setInterval(move,speed);
+                    is_start = 1;
+                }
+            }
+            //left
+            else if(e.keyCode ==37){
+                if(is_start == 1){
+                    checkDirection();
+                    direction = 1;
+                    head_x--;
+                    clearInterval(timer);
+                    if(move() == 1){
+                        return false;
+                    }
+                    timer = setInterval(move,speed);
+                }
+            }
+            //up
+            else if(e.keyCode ==38){
+                if(is_start == 1){
+                    checkDirection();
+                    direction = 2;
+                    head_y--;
+                    clearInterval(timer);
+                    if(move() == 1){
+                        return false;
+                    }
+                    timer = setInterval(move,speed);
+                }
+            }
+            //right
+            else if(e.keyCode ==39){
+                if(is_start == 1){
+                    checkDirection();
+                    direction = 3;
+                    head_x++;
+                    clearInterval(timer);
+                    if(move() == 1){
+                        return false;
+                    }
+                    timer = setInterval(move,speed);
+                }
+            }
+            //down
+            else if(e.keyCode ==40){
+                if(is_start == 1){
+                    checkDirection();
+                    direction = 4;
+                    head_y++;
+                    clearInterval(timer);
+                    if(move() == 1){
+                        return false;
+                    }
+                    timer = setInterval(move,speed);
+                }
+            }
+        });
+        
+    </script>
+</html>
